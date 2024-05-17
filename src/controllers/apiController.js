@@ -88,6 +88,18 @@ const updateMovieWithId = (req, res) => {
     } else return res.status(400).json({message: "Phải có ít nhất 1 tham số truyền vào để chỉnh sửa"});
 }
 
+const addNewEpisodeWithMovieId = (req, res) => {
+    let {episode, video_provider_url} = req.body;
+    let sql = `insert into episodes (episode, video_provider_url, movie_id) value (?,?,?)`;
+    connection.query(sql, [episode, video_provider_url, req.params.movieId], function(err, result){
+        if (err) {
+            console.log(err)
+            return res.status(400).json({message: "Lỗi"});
+        }
+        return res.status(200).json({message: "Thêm thành công"});
+    })
+}
+
 module.exports = {
-    addNewMovie, readMovies, readMovieWithId, updateMovieWithId
+    addNewMovie, readMovies, readMovieWithId, updateMovieWithId, addNewEpisodeWithMovieId
 }
