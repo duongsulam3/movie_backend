@@ -9,14 +9,13 @@ const addNewMovie = (req, res) => {
     function (err, results) {
         if (err) {
             console.log(err)
-            return res.status(400).json({message: "Lỗi"});
+            return res.status(400).json({"message": "Lỗi"});
         }
-        return res.status(200).json({message: "Thêm thành công"});
+        return res.status(200).json({"message": "Thêm thành công"});
     })
 }
 
 const readMovies = (req, res) => {
-    let movies = [];
     //const sql = `select * from movie`;
     const sql = `select m.*, count(e.episode) AS total_episodes 
     from movie m left join episodes e on m.movie_id = e.movie_id
@@ -24,9 +23,21 @@ const readMovies = (req, res) => {
     connection.query(sql, function(err, results){
         if (err){
             console.log(err);
-            return res.status(400).json({message: "Lỗi"});
+            return res.status(400).json({"message": "Lỗi"});
         }
         return res.status(200).json(results);
+    })
+}
+
+const readEpisodesOfAMovie = (req, res) => {
+    let sql = `select * from episodes where movie_id = ? order by episode asc`
+    let parameters = [req.params.movieId]
+    connection.query(sql, parameters, function(err, result){
+        if (err){
+            console.log(err);
+            return res.status(400).json({"message": "Lỗi"});
+        }
+        return res.status(200).json(result);
     })
 }
 
@@ -35,7 +46,7 @@ const readMovieWithId = (req, res) => {
     connection.query(sql, [req.params.movieId], function(err, result){
         if (err){
             console.log(err);
-            return res.status(400).json({message: "Lỗi"});
+            return res.status(400).json({"message": "Lỗi"});
         }
         return res.status(200).json(result);
     })
@@ -81,11 +92,27 @@ const updateMovieWithId = (req, res) => {
         connection.query(sql, parameters, function(err, results){
             if (err){
                 console.log(err)
-                return res.status(400).json({message: "Lỗi"});
+                return res.status(400).json({"message": "Lỗi"});
             }
-            return res.status(200).json({message: "Sửa thành công"});
+            return res.status(200).json({"message": "Sửa thành công"});
         })
-    } else return res.status(400).json({message: "Phải có ít nhất 1 tham số truyền vào để chỉnh sửa"});
+    } else return res.status(400).json({"message": "Phải có ít nhất 1 tham số truyền vào để chỉnh sửa"});
+}
+
+const updateEpisode = (req, res) => {
+    let { video_provider_url } = req.body;
+    let sql = `update episodes 
+    set video_provider_url = ? 
+    where movie_id = ? and episode = ?`
+    let parameters = [video_provider_url, req.params.movieId, req.params.episode];
+
+    connection.query(sql, parameters, function(err, results){
+        if (err){
+            //console.log(err)
+            return res.status(400).json({"message": "Lỗi", "error": err});
+        }
+        return res.status(200).json({"message": "Sửa thành công", "results": results});
+    })
 }
 
 const addNewEpisodeWithMovieId = (req, res) => {
@@ -93,13 +120,38 @@ const addNewEpisodeWithMovieId = (req, res) => {
     let sql = `insert into episodes (episode, video_provider_url, movie_id) value (?,?,?)`;
     connection.query(sql, [episode, video_provider_url, req.params.movieId], function(err, result){
         if (err) {
-            console.log(err)
-            return res.status(400).json({message: "Lỗi"});
+            //console.log(err)
+            if (err.errno == 1305) {
+                return res.status(400).json({"Error": "Tập phim đã tồn tại trong cơ sở dữ liệu!"})
+            }
+            return res.status(400).json({"message": "Lỗi", "Error": err});
         }
-        return res.status(200).json({message: "Thêm thành công"});
+        return res.status(200).json({"message": "Thêm thành công", "result": result});
+    })
+}
+
+const deleteEpisode = (req, res) => {
+    let sql = `delete from episodes where movie_id = ? and episode = ?`
+    let parameters = [req.params.movieId, req.params.episode]
+    connection.query(sql, parameters, function (err, result) {
+        if (err) {
+            return res.status(400).json({ "message": "Lỗi", "error": err });
+        }
+        return res.status(200).json({ "message": "Xoá thành công", "result": result});
+    })
+}
+
+const deleteMovie = (req, res) => {
+    let sql = `delete from movie where movie_id = ?`
+    let parameters = [req.params.movieId]
+    connection.query(sql, parameters, function(err, result){
+        if (err) {
+            return res.status(400).json({ "message": "Lỗi", "error": err });
+        }
+        return res.status(200).json({ "message": "Xoá thành công", "result": result});
     })
 }
 
 module.exports = {
-    addNewMovie, readMovies, readMovieWithId, updateMovieWithId, addNewEpisodeWithMovieId
+    addNewMovie, readMovies, readMovieWithId, updateMovieWithId, addNewEpisodeWithMovieId, deleteEpisode, deleteMovie, readEpisodesOfAMovie, updateEpisode
 }
